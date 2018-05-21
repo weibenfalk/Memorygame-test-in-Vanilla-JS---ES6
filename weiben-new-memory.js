@@ -63,6 +63,10 @@ class GameState {
 
         this.clickedCard = e.target.className;
     }
+
+    calcGameState() {
+
+    }
 }
 
 class SelectImages {

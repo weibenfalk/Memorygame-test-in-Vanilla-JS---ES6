@@ -15,9 +15,9 @@ class UIUpdate {
 
         document.querySelector('.fileselect').remove();
         for (let i = 0; i < imageArray.length; i++) {
-            let cardContainer = createUIElement('div', ['cardcontainer', 'col-md-3'], [['style', 'position:relative; top:0; left:0']]);
-            createUIElement('img', [`${imageArray[i].pair}`], [['src', imageArray[i].img], ['style', 'position:relative; top:0; left:0']], cardContainer);
-            createUIElement('img', [`${imageArray[i].pair}`], [['src', 'img/sw_card_back.jpg'], ['style', 'position:absolute; top:0; left:0;padding-right:20px !important; transition: all .5s']], cardContainer);
+            let cardContainer = createUIElement('div', ['cardcontainer', 'col-md-3']);
+            createUIElement('img', [`${imageArray[i].pair}`], [['src', imageArray[i].img]], cardContainer);
+            createUIElement('img', [`${imageArray[i].pair}`, `cardback`], [['src', 'img/sw_card_back.jpg']], cardContainer);
             this.container.appendChild(cardContainer);
         }
 
@@ -28,44 +28,54 @@ class UIUpdate {
         card.style.opacity = 0;
     }
 
-    fadeInCard(card) {
-
+    fadeInCard(cards) {
+        for ( let card of cards) {
+            card.style.opacity = 1;
+        }
     }
 }
 
 class GameState {
     constructor() {
-        this.clickedCard = "";
         this.activeCard = "";
-        this.pairShowTime = 1; // How long should the cards be shown before turning back
+        this.pairShowTime = 1; // in seconds
         this.turn = 0;
 		//this._pairCount = this._cardWrapper.children().length / 2;
 		this.clickable = true;
     }
 
     imgClick(e) {
-        uiUpdate.fadeOutCard(e.target);
-        this.clickedCard = e.target.className;
-        console.log(e.target.className);
-        if(this.turn === 2) {
-            // We have a mathing pair
-            if (this.clickedCard === this.activeCard) {
-                this.activeCard = "";
-                this.turn = 1;
-                console.log('Matching pair!');
-            } else {
-                // Fade up cardback here
-            }
-        } else {
-            this.activeCard = this.clickedCard;
-            this.turn = 2;
+        if(this.clickable && this.activeCard !== e.target &&
+        e.target.classList.contains('cardback') && !e.target.classList.contains('matched')) {
+            console.log('Clicking');
+            uiUpdate.fadeOutCard(e.target);
+            this.calcGameState(e.target);
         }
-
-        this.clickedCard = e.target.className;
     }
 
-    calcGameState() {
-
+    calcGameState(card) {
+        if (this.turn === 2) {
+            // We have a mathing pair
+            if (card.className === this.activeCard.className) {
+                console.log('Turn 2 - Matching pair!');
+                this.activeCard.classList.add('matched'); // For not possible to click on mathed pairs.
+                card.classList.add('matched');
+                this.activeCard = '';
+            } else {
+                console.log('Turn 2 - No match!');
+                this.clickable = false;
+                setTimeout( () => {
+                    uiUpdate.fadeInCard([card, this.activeCard]);
+                    this.activeCard = '';
+                    this.clickable = true;
+                    console.log('timeout');
+                }, this.pairShowTime * 1000);
+            }
+            this.turn = 1;
+        } else {
+            this.activeCard = card;
+            this.turn = 2;
+        }
     }
 }
 

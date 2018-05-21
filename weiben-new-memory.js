@@ -1,7 +1,7 @@
 
 class UIUpdate {
-    constructor(container) {
-        this.container = document.querySelector(container);
+    constructor() {
+        this.container = document.querySelector('.cards');
     }
 
     initCardBoard(imageArray) {
@@ -21,7 +21,7 @@ class UIUpdate {
             this.container.appendChild(cardContainer);
         }
 
-        this.container.addEventListener('click', (e) => {gameState.imgClick(e)});
+        this.container.addEventListener('click', (e) => {memory.gameState.imgClick(e)});
     }
 
     fadeOutCard(card) {
@@ -48,7 +48,7 @@ class GameState {
         if(this.clickable && this.activeCard !== e.target &&
         e.target.classList.contains('cardback') && !e.target.classList.contains('matched')) {
             console.log('Clicking');
-            uiUpdate.fadeOutCard(e.target);
+            memory.uiUpdate.fadeOutCard(e.target);
             this.calcGameState(e.target);
         }
     }
@@ -65,7 +65,7 @@ class GameState {
                 console.log('Turn 2 - No match!');
                 this.clickable = false;
                 setTimeout( () => {
-                    uiUpdate.fadeInCard([card, this.activeCard]);
+                    memory.uiUpdate.fadeInCard([card, this.activeCard]);
                     this.activeCard = '';
                     this.clickable = true;
                     console.log('timeout');
@@ -80,9 +80,9 @@ class GameState {
 }
 
 class SelectImages {
-    constructor(container) {
+    constructor() {
         this.imageArray = [];
-        this.container = document.querySelector(container);
+        this.container = document.querySelector('.memory');
     }
 
     makeSelectButton () {
@@ -98,7 +98,7 @@ class SelectImages {
                     this.imageArray[i] = this.imagesToArray(files[i], i);
             }
             Promise.all(this.imageArray).then( values => {
-                uiUpdate.initCardBoard(values); // Send the images to the class that draws the cardboard
+                memory.uiUpdate.initCardBoard(values); // Send the images to the class that draws the cardboard
             });
         }
     }
@@ -142,10 +142,19 @@ function createUIElement(type, classNames, attributes, container, eventlistener,
     }
 }
 
-// Start the game here
-let uiUpdate = new UIUpdate('.cards');
-let gameState = new GameState();
+class Memory {
+    constructor() {
+        this.uiUpdate = new UIUpdate();
+        this.gameState = new GameState();
+        this.imageSelect = new SelectImages();
+    }
 
-let imageSelect = new SelectImages('.memory');
-imageSelect.makeSelectButton();
+    start() {
+        this.imageSelect.makeSelectButton();
+    }
+}
+
+// Start the game here
+let memory = new Memory();
+memory.start();
 

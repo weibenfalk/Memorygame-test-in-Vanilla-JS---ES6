@@ -90,10 +90,10 @@ class Memory {
         this.uiUpdate.fadeOutCard(`.${cardId}`);
 
         // Find the clicked card in the card array
-        let activeCard = this.cards.find( (card) => card.id === cardId);
+        let activeCard = this.cards.find( card => card.id === cardId);
 
         // Check if any other card is shown
-        let matchCard = this.cards.find( (card) => card.status === 1);
+        let matchCard = this.cards.find( card => card.status === 1);
 
         // If another card is shown - means we are at turn 2
         if (matchCard) {

@@ -1,4 +1,3 @@
-
 class SelectImages {
     constructor(callback, caller) {
         this.imageArray = [];
@@ -144,7 +143,6 @@ class MemoryUI {
     }
 
     fadeInCard(cards) {
-        console.log(cards);
         for ( let card of cards) {
             document.querySelector(`${card}.cardback`).style.opacity = 1;
         }

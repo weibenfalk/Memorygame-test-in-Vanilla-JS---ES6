@@ -129,7 +129,7 @@ class Memory {
                 this.turn++;
                 this.uiUpdate.updateTurn(this.turn);
 
-                // Check if all pair is matched and the game is won
+                // Check if all pairs is matched and the game is won
                 if (this.cards.every( card => card.status === 2)) {
                     console.log('the end');
                 }
@@ -150,7 +150,8 @@ class MemoryUI {
     initCardBoard(cards, caller) {
         document.querySelector('.fileselect').remove();
         // Shuffle the cards
-        let shuffledCards = cards.sort(() => Math.random() - 0.5);
+        //let shuffledCards = cards.sort(() => Math.random() - 0.5);
+        let shuffledCards = shuffleArray(cards);
 
         for (let i = 0; i < shuffledCards.length; i++) {
             let bootstrapWrapper = createUIElement('div', ['col-md-3']);
@@ -200,6 +201,14 @@ function createUIElement(type, classNames, attributes, container, eventlistener,
     } else {
         return element;
     }
+}
+
+// fully random by @BetonMAN
+function shuffleArray (arr) {
+        return arr
+          .map(a => [Math.random(), a])
+          .sort((a, b) => a[0] - b[0])
+          .map(a => a[1]);
 }
 
 // Start the game here

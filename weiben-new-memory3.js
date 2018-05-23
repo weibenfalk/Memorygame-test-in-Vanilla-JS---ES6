@@ -1,3 +1,6 @@
+// vanilla Javascript Memory Game v 0.1
+// by Thomas Weibenfalk - 2018
+
 class SelectImages {
     constructor(callback, caller) {
         this.imageArray = [];
@@ -53,11 +56,14 @@ class Memory {
         this.memoryWrapper = document.querySelector('.memory');
         this.clickable = true;
         this.showTime = 1 // Secs the cards will be shown
+
+        // To implement: Turn counter, Timer, Select between own images or use default
     }
 
     start() {
         let inputBtn = this.imageSelect.makeSelectButton();
-        this.memoryWrapper.appendChild(inputBtn);
+        document.querySelector('.file-upload').appendChild(inputBtn);
+       // this.memoryWrapper.appendChild(inputBtn);
     }
 
     fillCardsArray(cards, caller) {
@@ -79,41 +85,48 @@ class Memory {
     }
 
     imgClick(e) {
-        if (this.clickable) {
+        // Do something when clicked on a card, nothing else
+        if  (e.target.classList.contains('card')) {
             this.gameState(e.target);
         }
     }
 
     gameState(clickedCard) {
+        // Get the classname of the clicked card - aka ID
         let cardId = clickedCard.className.split(' ')[0];
-        this.uiUpdate.fadeOutCard(`.${cardId}`);
 
         // Find the clicked card in the card array
         let activeCard = this.cards.find( card => card.id === cardId);
 
-        // Check if any other card is shown
-        let matchCard = this.cards.find( card => card.status === 1);
+        if (this.clickable && activeCard.status !== 2) {
 
-        // If another card is shown - means we are at turn 2
-        if (matchCard) {
-            // Matching pair
-            if (matchCard.matchId === cardId){
-                activeCard.status = 2;
-                matchCard.status = 2;
-            // No matching pair. Reset the cards status and hide them
+            // Flip the card
+            this.uiUpdate.flipCard(cardId);
+
+            // Check if any other card is shown
+            let matchCard = this.cards.find( card => card.status === 1);
+
+            // If another card is shown - means we are at turn 2
+            if (matchCard) {
+                // Matching pair
+                if (matchCard.matchId === cardId){
+                    activeCard.status = 2;
+                    matchCard.status = 2;
+                // No matching pair. Reset the cards status and hide them
+                } else {
+                    activeCard.status = 0;
+                    matchCard.status = 0;
+                    this.clickable = false;
+                    setTimeout( () => {
+                        this.uiUpdate.flipCard(cardId);
+                        this.uiUpdate.flipCard(matchCard.id);
+                        this.clickable = true;
+                    }, this.showTime * 1000);
+                }
+            // No other card has status 1 shown - means we are at turn 1
             } else {
-                activeCard.status = 0;
-                matchCard.status = 0;
-                this.clickable = false;
-                setTimeout( () => {
-                    this.uiUpdate.fadeInCard([`.${cardId}`, `.${matchCard.id}`]);
-                    this.clickable = true;
-                }, this.showTime * 1000);
-
+                activeCard.status = 1;
             }
-        // No other card has status 1 shown - means we are at turn 1
-        } else {
-            activeCard.status = 1;
         }
     }
 }
@@ -129,26 +142,26 @@ class MemoryUI {
         let shuffledCards = cards.sort(() => Math.random() - 0.5);
 
         for (let i = 0; i < shuffledCards.length; i++) {
-            let cardContainer = createUIElement('div', ['cardcontainer', 'col-md-3']);
-            createUIElement('img', [`${shuffledCards[i].id}`], [['src', shuffledCards[i].imagePath]], cardContainer);
-            createUIElement('img', [`${shuffledCards[i].id}`, `cardback`], [['src', 'img/sw_card_back.jpg']], cardContainer);
-            this.cardDeckWrapper.appendChild(cardContainer);
+            let bootstrapWrapper = createUIElement('div', ['col-md-3']);
+            let cardContainer = createUIElement('div', ['cardcontainer']);
+            createUIElement('img', [`${shuffledCards[i].id}`, `card`, `back`], [['src', shuffledCards[i].imagePath], ['draggable', false]], cardContainer);
+            createUIElement('img', [`${shuffledCards[i].id}`, `card`, `front`], [['src', 'img/sw_card_back.jpg'], ['draggable', false]], cardContainer);
+
+            bootstrapWrapper.appendChild(cardContainer);
+            this.cardDeckWrapper.appendChild(bootstrapWrapper);
         }
 
         this.cardDeckWrapper.addEventListener('click', (e) => {caller.imgClick(e)});
     }
 
-    fadeOutCard(card) {
-        document.querySelector(`${card}.cardback`).style.opacity = 0;
-    }
+    flipCard(card) {
+        let cards = document.querySelectorAll(`.${card}`);
 
-    fadeInCard(cards) {
-        for ( let card of cards) {
-            document.querySelector(`${card}.cardback`).style.opacity = 1;
+        for (let card of cards) {
+            card.classList.toggle('flipped');
         }
     }
 }
-
 
 // Helper functions
 function createUIElement(type, classNames, attributes, container, eventlistener, eventtype, eventcallback) {

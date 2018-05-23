@@ -12,26 +12,57 @@
 
 <style>
 
-
-    .cardcontainer img {
-        position: relative;
-        width: 100%;
-        padding: 0 0 30px 0;
-        top: 0;
-        left: 0;
+    input[type=file] {
+        display: none;
     }
 
-    .cardcontainer .cardback {
-        position: absolute;
-        top: 0;
-        left: 0;
-        padding: 0 15px 15px 15px !important;
+    .file-upload {
+        background:#FBB85B;
+        width: 200px;
+        height: 50px;
+        font-size: 22px;
         cursor: pointer;
-        transition: all .5s;
+        text-align: center;
     }
 
+    .cardcontainer {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        perspective: 1000px;
+    }
 
+    .card {
+        width: 100%;
+        height: 100%;
+        transition: all .5s;
+        backface-visibility: hidden;
+        cursor: pointer;
+        transform-style: preserve-3d;
+        padding: 0 0 30px 0;
+    }
 
+    .front {
+        z-index: 2;
+    }
+
+    .back {
+        z-index: 1;
+        transform: rotateY(180deg);
+        position: absolute;
+        top: 0px;
+        left: 0px;
+    }
+
+    .front.flipped {
+        z-index: 1;
+        transform: rotateY(180deg);
+    }
+
+    .back.flipped {
+        z-index: 2;
+        transform: rotateY(360deg);
+    }
 
 </style>
 
@@ -40,6 +71,9 @@
         <header class="header row">
             <div class="col-md-12">
                 <h1>Memory game v0.1</h1>
+                <label class="file-upload">
+                    Select Images
+                </label>
             </div>
         </header>
 

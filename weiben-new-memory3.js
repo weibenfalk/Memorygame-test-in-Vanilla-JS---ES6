@@ -1,4 +1,4 @@
-// vanilla Javascript Memory Game v 0.1
+// vanilla Javascript Memory Game v 0.2
 // by Thomas Weibenfalk - 2018
 
 class SelectImages {
@@ -56,14 +56,15 @@ class Memory {
         this.memoryWrapper = document.querySelector('.memory');
         this.clickable = true;
         this.showTime = 1 // Secs the cards will be shown
+        this.turn = 0;
 
-        // To implement: Turn counter, Timer, Select between own images or use default
+        // To implement: Reset everything when game won, Timer, Select between own images or use default
     }
 
     start() {
+        this.turn = 0;
         let inputBtn = this.imageSelect.makeSelectButton();
         document.querySelector('.file-upload').appendChild(inputBtn);
-       // this.memoryWrapper.appendChild(inputBtn);
     }
 
     fillCardsArray(cards, caller) {
@@ -123,6 +124,16 @@ class Memory {
                         this.clickable = true;
                     }, this.showTime * 1000);
                 }
+
+                // Update turn
+                this.turn++;
+                this.uiUpdate.updateTurn(this.turn);
+
+                // Check if all pair is matched and the game is won
+                if (this.cards.every( card => card.status === 2)) {
+                    console.log('the end');
+                }
+
             // No other card has status 1 shown - means we are at turn 1
             } else {
                 activeCard.status = 1;
@@ -152,6 +163,11 @@ class MemoryUI {
         }
 
         this.cardDeckWrapper.addEventListener('click', (e) => {caller.imgClick(e)});
+    }
+
+    updateTurn(turn) {
+        let turnDisplay = document.querySelector('.turn');
+        turnDisplay.innerHTML = `Turn: ${turn}`;
     }
 
     flipCard(card) {

@@ -1,32 +1,79 @@
-// vanilla Javascript Memory Game v 0.2
+// vanilla Javascript Memory Game v 0.5
 // by Thomas Weibenfalk - 2018
 
-class SelectImages {
-    constructor(callback, caller) {
+/**
+ * Class that manages the file selection for the images that are used for the memory cards.
+ */
+class ImageSelector {
+
+   /**
+    * Create a new image selector component. The created is a HTMLElement that can be added     * to the DOM-tree.
+    *
+    * @param {function} listener a listener function that will be called when images has been
+    * selected.
+    * @return {HTMLElement} the created image selector.
+    */
+
+    static createImageSelector(listener) {
+        let imageSelector = new ImageSelector(listener);
+        return imageSelector.createSelectorButton();
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    // "Private" methods.
+    //////////////////////////////////////////////////////////////////////////////
+
+   /**
+    * Constructor.
+    *
+    * @param {function} listener a listener function that will be called when images has been
+    * selected.
+    */
+
+    constructor(listener) {
         this.imageArray = [];
-        this.callback = callback;
-        this.caller = caller;
+        this.listener = listener;
     }
 
-    makeSelectButton () {
-        return createUIElement('input',['fileselect'], [['type', 'file'], ['multiple', 'true']],
-        '', true, 'change', (e) => this.selectedImages(e));
+   /**
+    * Create an image selector.
+    *
+    * @return {HTMLElement} the created image selector.
+    */
+    createSelectorButton () {
+        return ViewManager.createView('input', ['fileselect'], [['type', 'file'],
+        ['multiple', 'true'], ['accept', 'image/*']], undefined, true, 'change',
+        (e) => this.onImagesSelected(e));
     }
 
-    selectedImages(e) {
+   /**
+    * Called when the user has selected one or more files.
+    *
+    * @param {Event} e the generated event containing the files.
+    */
+    onImagesSelected(e) {
          let files = e.target.files;
         if (files && files[0]) {
             for (let i = 0; i < files.length; i++) {
-                // If not an image skip this iteration.
+                // This check should not be neccessary as only images are accepted, but why not.
                 if (!files[i].type.startsWith('image/')) continue;
                     this.imageArray[i] = this.imagesToArray(files[i], i);
             }
             Promise.all(this.imageArray).then( values => {
-                this.callback(values, this.caller);
+                // Notify the client that images has been selected.
+                this.listener(values);
             });
         }
     }
 
+   /**
+    * Read the images and add them into an array.
+    *
+    * @param {File} file the file input.
+    * @param {number} count the number of files.
+    *
+    * @return {Promise<object>} a promise of the read images.
+    */
     imagesToArray(file, count) {
         return new Promise((resolve, reject) => {
             let reader = new FileReader();
@@ -39,6 +86,9 @@ class SelectImages {
     }
 }
 
+/**
+ * Class for every individual Memory card
+ */
 class MemoryCard {
     constructor() {
         this.id = '';
@@ -48,12 +98,15 @@ class MemoryCard {
     }
 }
 
+/**
+ * The memory game class
+ */
 class Memory {
     constructor(){
-        this.imageSelect = new SelectImages(this.fillCardsArray, this);
-        this.uiUpdate = new MemoryUI();
+        this.imageSelect = new ImageSelector(this.fillCardsArray, this);
         this.cards = [];
-        this.memoryWrapper = document.querySelector('.memory');
+        this.container = document.querySelector('.memory');
+        this.cardDeckWrapper = document.querySelector('.cards');
         this.clickable = true;
         this.showTime = 1 // Secs the cards will be shown
         this.turn = 0;
@@ -61,13 +114,26 @@ class Memory {
         // To implement: Reset everything when game won, Timer, Select between own images or use default
     }
 
+   /**
+    * Start the memory game.
+    */
     start() {
         this.turn = 0;
-        let inputBtn = this.imageSelect.makeSelectButton();
-        document.querySelector('.file-upload').appendChild(inputBtn);
+        this.imageSelector = ImageSelector.createImageSelector(res => {
+            this.imageSelector.remove();
+            this.fillCardsArray(res);
+        });
+        document.querySelector('.file-upload').appendChild(this.imageSelector);
     }
 
-    fillCardsArray(cards, caller) {
+   /**
+    * Fill up the card Array
+    * @property {id} string the generated unique card ID.
+    * @property {imagePath} string the image URL
+    * @property {matchID} string the matching card ID
+    * @property {status} integer 0 = hidden card, 1 = shown card, 2 = paired card
+    */
+    fillCardsArray(cards) {
         let cardId = 0;
         for (let i = 0; i < cards.length; i++) {
             // Double up the cards as we need pairs
@@ -78,23 +144,56 @@ class Memory {
                 card.matchId = (j === 0) ? 'card' + (cardId + 1) : 'card' + (cardId - 1);
                 card.status = 0;
 
-                caller.cards.push(card);
+                this.cards.push(card);
                 cardId++;
             }
         }
-        caller.uiUpdate.initCardBoard(caller.cards, caller);
+        this.initCardBoard(this.cards);
     }
 
-    imgClick(e) {
-        // Do something when clicked on a card, nothing else
+   /**
+    * Initialize the card board.
+    *
+    * @param {Array} imageArray an image array.
+    */
+    initCardBoard(imageArray) {
+        document.querySelector('.file-upload').remove();
+        // Shuffle the cards
+        //let shuffledCards = cards.sort(() => Math.random() - 0.5);
+        let shuffledCards = shuffleArray(imageArray);
+
+        for (let i = 0; i < shuffledCards.length; i++) {
+            let bootstrapWrapper = ViewManager.createView('div', ['col-md-3']);
+            let cardContainer = ViewManager.createView('div', ['cardcontainer']);
+            ViewManager.createView('img', [`${shuffledCards[i].id}`, `card`, `back`], [['src', shuffledCards[i].imagePath], ['draggable', false]], cardContainer);
+            ViewManager.createView('img', [`${shuffledCards[i].id}`, `card`, `front`], [['src', 'img/sw_card_back.jpg'], ['draggable', false]], cardContainer);
+
+            bootstrapWrapper.appendChild(cardContainer);
+            this.cardDeckWrapper.appendChild(bootstrapWrapper);
+        }
+
+        this.cardDeckWrapper.addEventListener('click', (e) => {this.onCardClicked(e)});
+    }
+
+   /**
+    * Called when an card has been clicked.
+    *
+    * @param {Event} e the click event.
+    */
+    onCardClicked(e) {
         if  (e.target.classList.contains('card')) {
             this.gameState(e.target);
         }
     }
 
-    gameState(clickedCard) {
+   /**
+    * Update the game state.
+    *
+    * @param {HTMLElement} card the card element.
+    */
+    gameState(card) {
         // Get the classname of the clicked card - aka ID
-        let cardId = clickedCard.className.split(' ')[0];
+        let cardId = card.className.split(' ')[0];
 
         // Find the clicked card in the card array
         let activeCard = this.cards.find( card => card.id === cardId);
@@ -102,7 +201,7 @@ class Memory {
         if (this.clickable && activeCard.status !== 2) {
 
             // Flip the card
-            this.uiUpdate.flipCard(cardId);
+            this.flipCard(cardId);
 
             // Check if any other card is shown
             let matchCard = this.cards.find( card => card.status === 1);
@@ -119,15 +218,15 @@ class Memory {
                     matchCard.status = 0;
                     this.clickable = false;
                     setTimeout( () => {
-                        this.uiUpdate.flipCard(cardId);
-                        this.uiUpdate.flipCard(matchCard.id);
+                        this.flipCard(cardId);
+                        this.flipCard(matchCard.id);
                         this.clickable = true;
                     }, this.showTime * 1000);
                 }
 
                 // Update turn
                 this.turn++;
-                this.uiUpdate.updateTurn(this.turn);
+                this.updateTurn(this.turn);
 
                 // Check if all pairs is matched and the game is won
                 if (this.cards.every( card => card.status === 2)) {
@@ -140,37 +239,22 @@ class Memory {
             }
         }
     }
-}
 
-class MemoryUI {
-    constructor() {
-        this.cardDeckWrapper = document.querySelector('.cards');
-    }
-
-    initCardBoard(cards, caller) {
-        document.querySelector('.fileselect').remove();
-        // Shuffle the cards
-        //let shuffledCards = cards.sort(() => Math.random() - 0.5);
-        let shuffledCards = shuffleArray(cards);
-
-        for (let i = 0; i < shuffledCards.length; i++) {
-            let bootstrapWrapper = createUIElement('div', ['col-md-3']);
-            let cardContainer = createUIElement('div', ['cardcontainer']);
-            createUIElement('img', [`${shuffledCards[i].id}`, `card`, `back`], [['src', shuffledCards[i].imagePath], ['draggable', false]], cardContainer);
-            createUIElement('img', [`${shuffledCards[i].id}`, `card`, `front`], [['src', 'img/sw_card_back.jpg'], ['draggable', false]], cardContainer);
-
-            bootstrapWrapper.appendChild(cardContainer);
-            this.cardDeckWrapper.appendChild(bootstrapWrapper);
-        }
-
-        this.cardDeckWrapper.addEventListener('click', (e) => {caller.imgClick(e)});
-    }
-
+   /**
+    * Update the turn display
+    *
+    * @param {integer} turn the current turn.
+    */
     updateTurn(turn) {
         let turnDisplay = document.querySelector('.turn');
         turnDisplay.innerHTML = `Turn: ${turn}`;
     }
 
+   /**
+    * Flip the card back and forth
+    *
+    * @param {cardclass} card The current card that is being flipped
+    */
     flipCard(card) {
         let cards = document.querySelectorAll(`.${card}`);
 
@@ -180,26 +264,49 @@ class MemoryUI {
     }
 }
 
-// Helper functions
-function createUIElement(type, classNames, attributes, container, eventlistener, eventtype, eventcallback) {
-    let element = document.createElement(type);
-    if (classNames) {
-        for (let cls of classNames) {
-            element.classList.add(cls);
+/**
+ * View manager used for interacting with DOM tree.
+ *
+ * TODO Move more of the view manipulation here.
+ */
+class ViewManager {
+
+  /**
+   * Create a new view. If a parent is provided, the view will be appended as a child
+   * to that parent.
+   *
+   * @param {*} type TODO Add description here
+   * @param {*} classNames TODO Add description here
+   * @param {*} attributes TODO Add description here
+   * @param {*} parent TODO Add description here
+   * @param {*} eventlistener TODO Add description here
+   * @param {*} eventtype TODO Add description here
+   * @param {*} eventcallback TODO Add description here
+   *
+   * @return the created UI element or the parent if such was provided.
+   */
+    static createView(type, classNames, attributes, parent, eventlistener, eventtype,
+        eventcallback) {
+        let element = document.createElement(type);
+
+        if (classNames) {
+            for (let cls of classNames) {
+                element.classList.add(cls);
+            }
         }
-    }
-    if (attributes) {
-        for (attr of attributes) {
-            element.setAttribute(attr[0], attr[1]);
+        if (attributes) {
+            for (let attr of attributes) {
+                element.setAttribute(attr[0], attr[1]);
+            }
         }
-    }
-    if (eventlistener) {
-        element.addEventListener(eventtype, eventcallback);
-    }
-    if (container) {
-        container.appendChild(element);
-    } else {
-        return element;
+        if (eventlistener) {
+            element.addEventListener(eventtype, eventcallback);
+        }
+        if (parent) {
+            parent.appendChild(element);
+        } else {
+            return element;
+        }
     }
 }
 
@@ -212,5 +319,7 @@ function shuffleArray (arr) {
 }
 
 // Start the game here
-let memory = new Memory();
-memory.start();
+document.addEventListener("DOMContentLoaded", () => {
+    let memory = new Memory();
+    memory.start();
+});
